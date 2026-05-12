@@ -4,13 +4,16 @@
 // ============================================================
 $current = basename($_SERVER['PHP_SELF'], '.php');
 $nav = [
-    'index'     => ['icon' => '⬡', 'label' => 'Dashboard'],
-    'centri'    => ['icon' => '◈', 'label' => 'Centri'],
-    'corsi'     => ['icon' => '◉', 'label' => 'Corsi'],
-    'iscritti'  => ['icon' => '◎', 'label' => 'Iscritti'],
-    'iscrizioni'=> ['icon' => '◆', 'label' => 'Iscrizioni'],
-    'accessi'   => ['icon' => '▸', 'label' => 'Accessi'],
-    'analisi'   => ['icon' => '◐', 'label' => 'Analisi'],
+    'index'          => ['icon' => '⬡', 'label' => 'Dashboard'],
+    'centri'         => ['icon' => '◈', 'label' => 'Centri'],
+    'corsi'          => ['icon' => '◉', 'label' => 'Corsi'],
+    'iscritti'       => ['icon' => '◎', 'label' => 'Iscritti'],
+    'iscrizioni'     => ['icon' => '◆', 'label' => 'Iscrizioni'],
+    'disponibilita'  => ['icon' => '⬜', 'label' => 'Disponibilità'],
+    'accessi'        => ['icon' => '▸', 'label' => 'Accessi'],
+    'analisi'        => ['icon' => '◐', 'label' => 'Analisi'],
+    'analisi_centri' => ['icon' => '◧', 'label' => 'Analisi Centri'],
+    'reportistica'   => ['icon' => '📅', 'label' => 'Reportistica'],
 ];
 ?>
 <!DOCTYPE html>
