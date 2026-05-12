@@ -4,39 +4,38 @@ $pageTitle = 'Analisi Centri – Tipologia Corso';
 include __DIR__ . '/header.php';
 
 // ─── Query: categoria con più accessi per ogni centro ────────────────────────
-// Logica: JOIN ACCESSI → ISCRIZIONI_CORSI → CORSI → CENTRI
-// Raggruppo per centro+categoria, poi prendo il MAX con subquery
+// MySQL non permette alias di colonna nel GROUP BY: usare sempre il nome reale
 $stmtCrossincrociata = $pdo->query("
     SELECT
         ce.idCentro,
         ce.nomeCentro,
-        ce.tipologia AS tipologiaCentro,
+        ce.tipologia,
         c.categoria,
-        COUNT(a.idAccesso) AS totale_accessi,
+        COUNT(a.idAccesso)          AS totale_accessi,
         COUNT(DISTINCT ic.idIscritto) AS iscritti_distinti
     FROM ACCESSI a
     JOIN ISCRIZIONI_CORSI ic ON ic.idIscritto = a.idIscritto
-    JOIN CORSI c ON c.idCorso = ic.idCorso
-    JOIN CENTRI ce ON ce.idCentro = c.idCentro
-    GROUP BY ce.idCentro, ce.nomeCentro, ce.tipologiaCentro, c.categoria
+    JOIN CORSI c             ON c.idCorso     = ic.idCorso
+    JOIN CENTRI ce           ON ce.idCentro   = c.idCentro
+    GROUP BY ce.idCentro, ce.nomeCentro, ce.tipologia, c.categoria
     ORDER BY ce.idCentro, totale_accessi DESC
 ");
 $righe = $stmtCrossincrociata->fetchAll();
 
-// Raggruppa per centro
+// Raggruppa per centro lato PHP
 $perCentro = [];
 foreach ($righe as $r) {
-    $perCentro[$r['idCentro']]['nome'] = $r['nomeCentro'];
-    $perCentro[$r['idCentro']]['tipologia'] = $r['tipologiaCentro'];
+    $perCentro[$r['idCentro']]['nome']       = $r['nomeCentro'];
+    $perCentro[$r['idCentro']]['tipologia']  = $r['tipologia'];
     $perCentro[$r['idCentro']]['categorie'][] = $r;
 }
 
-// ─── Query: top categoria per ogni centro (ottimizzazione pianificazione) ────
+// ─── Query: top categoria per ogni centro con RANK() ────────────────────────
 $stmtTop = $pdo->query("
     SELECT
         sub.idCentro,
         sub.nomeCentro,
-        sub.categoria AS categoria_top,
+        sub.categoria   AS categoria_top,
         sub.totale_accessi AS accessi_top
     FROM (
         SELECT
@@ -47,8 +46,8 @@ $stmtTop = $pdo->query("
             RANK() OVER (PARTITION BY ce.idCentro ORDER BY COUNT(a.idAccesso) DESC) AS rnk
         FROM ACCESSI a
         JOIN ISCRIZIONI_CORSI ic ON ic.idIscritto = a.idIscritto
-        JOIN CORSI c ON c.idCorso = ic.idCorso
-        JOIN CENTRI ce ON ce.idCentro = c.idCentro
+        JOIN CORSI c             ON c.idCorso     = ic.idCorso
+        JOIN CENTRI ce           ON ce.idCentro   = c.idCentro
         GROUP BY ce.idCentro, ce.nomeCentro, c.categoria
     ) sub
     WHERE sub.rnk = 1
@@ -90,7 +89,7 @@ foreach ($topPerCentro as $t) {
     <canvas id="chartTopCategoria" height="100"></canvas>
   </div>
 
-  <!-- Tabella dettaglio completo -->
+  <!-- Tabella dettaglio completo per centro -->
   <div class="card-header" style="margin-top:1.5rem"><div class="card-title">Dettaglio completo per centro</div></div>
   <?php foreach ($perCentro as $centroId => $data): ?>
   <div class="card" style="margin-bottom:1rem">
@@ -107,7 +106,7 @@ foreach ($topPerCentro as $t) {
           <?php
           $totCentro = array_sum(array_column($data['categorie'], 'totale_accessi'));
           foreach ($data['categorie'] as $idx => $cat):
-            $quota = $totCentro > 0 ? round($cat['totale_accessi'] / $totCentro * 100, 1) : 0;
+              $quota = $totCentro > 0 ? round($cat['totale_accessi'] / $totCentro * 100, 1) : 0;
           ?>
           <tr style="<?= $idx === 0 ? 'font-weight:600;background:rgba(45,106,79,.05)' : '' ?>">
             <td>
@@ -146,9 +145,7 @@ const labels = <?= json_encode($chartLabels) ?>;
 const data   = <?= json_encode($chartData) ?>;
 const cats   = <?= json_encode($chartCat) ?>;
 
-const palette = [
-    '#2d6a4f','#52b788','#d95f1a','#e9c46a','#264653','#e76f51','#a8dadc','#457b9d'
-];
+const palette = ['#2d6a4f','#52b788','#d95f1a','#e9c46a','#264653','#e76f51','#a8dadc','#457b9d'];
 
 new Chart(document.getElementById('chartTopCategoria').getContext('2d'), {
     type: 'bar',
@@ -157,7 +154,7 @@ new Chart(document.getElementById('chartTopCategoria').getContext('2d'), {
         datasets: [{
             label: 'Accessi categoria top',
             data: data,
-            backgroundColor: palette.slice(0, labels.length),
+            backgroundColor: palette.slice(0, labels.length)
         }]
     },
     options: {
@@ -165,16 +162,12 @@ new Chart(document.getElementById('chartTopCategoria').getContext('2d'), {
         plugins: {
             tooltip: {
                 callbacks: {
-                    afterLabel: function(context) {
-                        return 'Categoria: ' + cats[context.dataIndex];
-                    }
+                    afterLabel: ctx => 'Categoria: ' + cats[ctx.dataIndex]
                 }
             },
             legend: { display: false }
         },
-        scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-        }
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
     }
 });
 </script>
